@@ -7,6 +7,7 @@
 #include <cmath>
 
 #include "WifibotClient.h"
+#include "Odometrie.h"
 
 #define IP_ADRESSE "10.3.141.1"
 #define PORT	15020
@@ -28,66 +29,6 @@ void setSpeed(int left, int right, WifibotClient& robot) {
 	}
 	robot.SendCommand(abs(left), abs(right),flags);
 }
-
-double get_dt(std::chrono::system_clock::time_point &lastTime) {
-	std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
-	std::chrono::duration<double> elapsed_seconds = now-lastTime;
-	lastTime = now;
-	return elapsed_seconds.count();
-}
-
-void getVitesse(SensorData sensors_data, double &vit_left, double &vit_right) {
-	vit_left = (((double)sensors_data.SpeedFrontLeft / 2048) * 2 * M_PI) * 14.5;//convertis la vitesse en cm/s
-	vit_right = (((double)sensors_data.SpeedFrontRight / 2048) * 2 * M_PI) * 14.5;
-}
-
-
-void getDistance(SensorData sensors_data, double dt, double &dist_left, double &dist_right){
-	double left;
-	double right;
-	getVitesse(sensors_data, left, right);
-	dist_left += left*dt;
-	dist_right += right*dt;
-}
-
-void majOdometrie(double &x, double &y, double &yaw, double dist_l, double dist_r) {
-	if (!(dist_l == 0 && dist_r == 0)) {
-		double dist = (dist_l + dist_r) / 2;
-		double rayon = 15.0 * (dist_r + dist_l) / (dist_r - dist_l);
-		double diff_yaw = dist / rayon;
-
-		//std::cout << "dist : " << dist << "\t rayon : " << rayon << "\t yaw : " << diff_yaw << "\n";
-
-		//coordonees du centre du rayon de courbure
-		double x0 = x - rayon * cos(yaw - (M_PI / 2));
-		double y0 = y - rayon * sin(yaw - (M_PI / 2));
-
-		//std::cout << "x0 : " << x0 << "\t y0 : " << y0 << "\t thet : "<< diff_yaw<<"\n";
-
-		//on maj les donnees
-		if (diff_yaw != 0) { // on verifie qu'on est pas a l'infinie
-			if (abs(rayon) == 0) {
-				//pas de deplacement sur x et y, juste une rotation pure
-				yaw += (dist_l / 15.0);
-			}
-			else {
-				yaw += diff_yaw;
-				x = x0 + rayon * cos(yaw - (M_PI / 2));
-				y = y0 + rayon * sin(yaw - (M_PI / 2));
-			}
-		}
-		else {
-			x += dist * cos(yaw);
-			y += dist * sin(yaw);
-			if (dist_l == -dist_r) { //rotation pure
-				yaw += (dist_r / 15.0);
-			}
-		}
-
-
-	}
-}
-
 
 
 int main(void)
@@ -117,38 +58,18 @@ int main(void)
 	/*..............*/
 
 	//init
-	SensorData sensors_data;
-	auto lastTime = std::chrono::system_clock::now();
-	double pos_x = 0;
-	double pos_y = 0;
-	double yaw = 0;
+	Odometrie odo = new Odometrie(robot);
 
 	for (int i = 0; i < 100; i++) {
 		setSpeed(40, 40*((100-i)/50), robot);
 		Sleep(100);
 
-		//maj audo
-		robot.GetSensorData(&sensors_data);
-		double dt = get_dt(lastTime);
-		double dist_l = 0;//faut init les dist a zero sinon on add
-		double dist_r = 0;
-		getDistance(sensors_data, dt, dist_l, dist_r);
-		majOdometrie(pos_x, pos_y, yaw, dist_l, dist_r);
-		std::cout << "position x : " << pos_x << "\t y : " << pos_y << "\t yaw : " << yaw << "\n";
-	}
-	for (int i = 0; i < 100; i++) {
-		setSpeed(40, -40, robot);
-		Sleep(100);
+		//maj odo
+		odo.update();
+		odo.PrintData();
 
-		//maj audo
-		robot.GetSensorData(&sensors_data);
-		double dt = get_dt(lastTime);
-		double dist_l = 0;//faut init les dist a zero sinon on add
-		double dist_r = 0;
-		getDistance(sensors_data, dt, dist_l, dist_r);
-		majOdometrie(pos_x, pos_y, yaw, dist_l, dist_r);
-		std::cout << "position x : " << pos_x << "\t y : " << pos_y << "\t yaw : " << yaw << "\n";
 	}
+
 	setSpeed(0, 0, robot);
 	return 0;
 }
