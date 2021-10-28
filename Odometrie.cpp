@@ -2,24 +2,30 @@
 #include "Odometrie.h"
 
 
-Odometrie::Odometrie(WifibotClient &robot) {
+Odometrie::Odometrie(WifibotClient *robot) {
 	t_robot = robot;
-	t_robot.GetSensorData(&t_sensors_data);
-	t_odoLeft = t_sensors_data.OdometryLeft;
-	t_odoRight = t_sensors_data.OdometryRight;
+	t_robot->GetSensorData(&t_sensors_data);
+	t_odoLeft = 0;
+	t_odoRight = 0;
 	x = 0.0;
 	y = 0.0;
 	yaw = 0.0;
 }
 
 void Odometrie::Update() {
-	t_robot.GetSensorData(&t_sensors_data);
-	long tickLeft = t_sensors_data.OdometryLeft - t_odoLeft;
-	long tickRight = t_sensors_data.OdometryRight - t_odoRight;
-	t_odoLeft = t_sensors_data.OdometryLeft;
-	t_odoRight = t_sensors_data.OdometryRight;
-	long dist_l = (tickLeft / 2048) * 2 * M_PI * rayonRoue;
-	long dist_r = (tickRight / 2048) * 2 * M_PI * rayonRoue;
+	t_robot->GetSensorData(&t_sensors_data);
+	long buffLeft = t_sensors_data.OdometryLeft;
+	long buffRight = t_sensors_data.OdometryRight;
+	if (t_odoLeft == 0 && t_odoRight == 0) {
+		t_odoLeft = buffLeft;
+		t_odoRight = buffRight;
+	}
+	long tickLeft = buffLeft - t_odoLeft;
+	long tickRight = buffRight - t_odoRight;
+	t_odoLeft = buffLeft;
+	t_odoRight = buffRight;
+	double dist_l = ((double)tickLeft / 2048) * 2 * M_PI * rayonRoue;
+	double dist_r = ((double)tickRight / 2048) * 2 * M_PI * rayonRoue;
 
 
 
@@ -36,6 +42,7 @@ void Odometrie::Update() {
 		if (dist_r == dist_l) { // rayon a l'infinie
 			x += dist * cos(yaw);
 			y += dist * sin(yaw);
+		}
 		else if (dist_r == -dist_l) { //rayon nul -> rotation pure
 			yaw += (dist_r / distanceRoue);
 		}
@@ -50,6 +57,18 @@ void Odometrie::Update() {
 }
 
 
-	void Odometrie::PrintData() {
-		std::cout << "x : " << x << "\t y : " << y << "\t yaw : " << yaw << "\n";
-	}
+void Odometrie::PrintData() {
+	std::cout << "x : " << x << "\t y : " << y << "\t yaw : " << yaw << "\n";
+}
+
+double Odometrie::getX() {
+	return x;
+}
+
+double Odometrie::getY() {
+	return y;
+}
+
+double Odometrie::getYaw() {
+	return yaw;
+}
