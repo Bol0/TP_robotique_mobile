@@ -21,7 +21,7 @@ Not implemented yet but it will be a simple PID command.
 
 Project participants
 ====================
-LAROCHE Corentin <corentin.laroche@groupe-esigelec.org>
-LE GUEN Yoann <Yoannleguen56@gmail.com>
-DANNIEL Erwan <Erwan.denniel@gmail.com>
-Sorry for the last one <UwU.com>
+LAROCHE Corentin <corentin.laroche@groupe-esigelec.org>  
+LE GUEN Yoann <Yoannleguen56@gmail.com>  
+DANNIEL Erwan <Erwan.denniel@gmail.com>  
+Sorry for the last one <UwU.com>  
